@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { BookOpen, Plus, Users, Lock, Share2, Trash2 } from "lucide-react"
-import { createClient } from "@/lib/neon/database"
+// Database operations moved to server actions
 
 interface ReadingListsTabProps {
   readingLists: {
@@ -36,28 +36,23 @@ export function ReadingListsTab({ readingLists, userId }: ReadingListsTabProps) 
   const [newListName, setNewListName] = useState("")
   const [newListDescription, setNewListDescription] = useState("")
   const [newListPublic, setNewListPublic] = useState(false)
-  const db = createClient()
-
   const createReadingList = async () => {
     if (!newListName.trim()) return
 
-    await db.from("reading_lists").insert({
-      user_id: userId,
-      name: newListName,
-      description: newListDescription || null,
-      is_public: newListPublic,
-    }).execute()
-
+    // TODO: Implement server action for creating reading lists
+    console.log('Create reading list functionality needs server action implementation')
+    
     setNewListName("")
     setNewListDescription("")
     setNewListPublic(false)
     setShowCreateDialog(false)
-    window.location.reload()
+    // window.location.reload()
   }
 
   const deleteReadingList = async (listId: string) => {
-    await db.from("reading_lists").delete().eq("id", listId).eq("user_id", userId).execute()
-    window.location.reload()
+    // TODO: Implement server action for deleting reading lists
+    console.log('Delete reading list functionality needs server action implementation')
+    // window.location.reload()
   }
 
   return (

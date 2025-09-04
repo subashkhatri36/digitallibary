@@ -83,12 +83,12 @@ export function AIRecommendations({ personalizedBooks, trendingBooks, userId }: 
                     {book.is_trending && <Badge className="absolute top-2 right-2 bg-orange-500">Trending</Badge>}
                   </div>
                   <h4 className="font-semibold text-sm line-clamp-2 mb-1">{book.title}</h4>
-                  <p className="text-xs text-muted-foreground mb-2">by {book.authors?.name}</p>
+                  <p className="text-xs text-muted-foreground mb-2">by {book.author_name || 'Unknown Author'}</p>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs">
-                      {book.genres?.name}
+                      {book.genres?.name || 'Fiction'}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">★ {book.average_rating?.toFixed(1) || "N/A"}</span>
+                    <span className="text-xs text-muted-foreground">★ {book.average_rating ? Number(book.average_rating).toFixed(1) : "N/A"}</span>
                   </div>
                 </Link>
               </div>

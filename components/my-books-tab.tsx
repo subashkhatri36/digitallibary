@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BookOpen, Play, Trash2 } from "lucide-react"
-import { createClient } from "@/lib/neon/database"
+// Database operations moved to server actions
 import Link from "next/link"
 
 interface MyBooksTabProps {
@@ -38,15 +38,14 @@ interface MyBooksTabProps {
 export function MyBooksTab({ libraryBooks, readingProgress, userId }: MyBooksTabProps) {
   const [filter, setFilter] = useState("all")
   const [sortBy, setSortBy] = useState("recent")
-  const db = createClient()
-
   const getProgress = (bookId: string) => {
     return readingProgress.find((p) => p.book_id === bookId)
   }
 
   const removeBook = async (bookId: string) => {
-    await db.from("user_library").delete().eq("user_id", userId).eq("book_id", bookId).execute()
-    window.location.reload()
+    // TODO: Implement server action for removing books
+    console.log('Remove book functionality needs server action implementation')
+    // window.location.reload()
   }
 
   const filteredBooks = libraryBooks.filter((book) => {

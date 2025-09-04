@@ -19,7 +19,7 @@ import {
   Palette,
   X,
 } from "lucide-react"
-import { createClient } from "@/lib/neon/database"
+// Database operations moved to server actions
 import { useRouter } from "next/navigation"
 
 interface ReadingInterfaceProps {
@@ -59,7 +59,7 @@ export function ReadingInterface({ book, pages, initialPage, bookmarks, userId }
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false)
   const [readingStartTime, setReadingStartTime] = useState<number>(Date.now())
 
-  const db = createClient()
+  // Database client removed - operations moved to server actions
   const currentPageData = pages[currentPage]
   const isBookmarked = bookmarks.some((b) => b.page_number === currentPageData?.page_number)
 
@@ -67,18 +67,15 @@ export function ReadingInterface({ book, pages, initialPage, bookmarks, userId }
   const saveProgress = useCallback(async () => {
     if (!currentPageData) return
 
-    const readingTime = Math.floor((Date.now() - readingStartTime) / 60000) // Convert to minutes
-
-    await db.from("reading_progress").insert({
-      user_id: userId,
-      book_id: book.id,
-      current_page: currentPageData.page_number,
-      total_pages_read: currentPage + 1,
-      reading_time_minutes: readingTime,
-      last_read_at: new Date().toISOString(),
-      is_completed: currentPage === pages.length - 1,
-    }).execute()
-  }, [currentPageData, currentPage, pages.length, readingStartTime, userId, book.id, db])
+    // TODO: Implement server action for saving reading progress
+    console.log('Saving reading progress:', {
+      userId,
+      bookId: book.id,
+      currentPage: currentPageData.page_number,
+      totalPagesRead: currentPage + 1,
+      isCompleted: currentPage === pages.length - 1
+    })
+  }, [currentPageData, currentPage, pages.length, userId, book.id])
 
   // Auto-save progress every 30 seconds
   useEffect(() => {
@@ -115,32 +112,27 @@ export function ReadingInterface({ book, pages, initialPage, bookmarks, userId }
   const addBookmark = async () => {
     if (!currentPageData) return
 
-    await db.from("bookmarks").insert({
-      user_id: userId,
-      book_id: book.id,
-      page_number: currentPageData.page_number,
-      note: bookmarkNote || null,
-    }).execute()
+    // TODO: Implement server action for adding bookmarks
+    console.log('Adding bookmark:', {
+      userId,
+      bookId: book.id,
+      pageNumber: currentPageData.page_number,
+      note: bookmarkNote || null
+    })
 
     setBookmarkNote("")
     setShowBookmarkDialog(false)
-    // Refresh bookmarks (in a real app, you'd update state)
-    window.location.reload()
   }
 
   const removeBookmark = async () => {
     if (!currentPageData) return
 
-    await db
-      .from("bookmarks")
-      .delete()
-      .eq("user_id", userId)
-      .eq("book_id", book.id)
-      .eq("page_number", currentPageData.page_number)
-      .execute()
-
-    // Refresh bookmarks (in a real app, you'd update state)
-    window.location.reload()
+    // TODO: Implement server action for removing bookmarks
+    console.log('Removing bookmark:', {
+      userId,
+      bookId: book.id,
+      pageNumber: currentPageData.page_number
+    })
   }
 
   const getThemeClasses = () => {

@@ -1,5 +1,5 @@
-import { createServerClient } from "@/lib/neon/database"
-import { redirect } from "next/navigation"
+import { sql } from "@/lib/neon/client"
+import { requireAuth } from "@/lib/auth"
 import { LibraryTabs } from "@/components/library-tabs"
 import { ReadingStats } from "@/components/reading-stats"
 import { BookOpen, ArrowLeft, Sparkles, Heart, Search, Star } from "lucide-react"
@@ -9,73 +9,66 @@ import { AIRecommendations } from "@/components/ai-recommendations"
 import { getPersonalizedRecommendations, getTrendingBooks } from "@/lib/ai-recommendations"
 
 export default async function LibraryPage() {
-  const db = await createServerClient()
-
-  // Get user
-  const {
-    data: userData,
-    error: authError,
-  } = await db.auth.getUser()
-
-  if (authError || !userData?.user) {
-    redirect("/auth/login")
-  }
+  // Get authenticated user
+  const user = await requireAuth()
 
   // Get user's library books
-  const libraryBooks = await db
-    .from("user_library")
-    .select(`
-      *,
-      books(
-        id, title, author, cover_image, description, price,
-        publication_date, isbn, page_count, language, publisher
-      )
-    `)
-    .eq("user_id", userData.user.id)
-    .execute()
+  const libraryBooks = await sql`
+    SELECT ul.*, b.id, b.title, a.name as author, b.cover_url as cover_image, b.description, b.price,
+           b.publication_date, b.isbn, b.page_count
+    FROM user_library ul
+    JOIN books b ON ul.book_id = b.id
+    LEFT JOIN authors a ON b.author_id = a.id
+    WHERE ul.user_id = ${user.id}
+  `
 
   // Get reading progress
-  const readingProgress = await db
-    .from("reading_progress")
-    .select(`
-      *,
-      books(title, page_count, authors(name))
-    `)
-    .eq("user_id", userData.user.id)
-    .execute()
+  const readingProgress = await sql`
+    SELECT rp.*, b.title, b.page_count, a.name as author
+    FROM reading_progress rp
+    JOIN books b ON rp.book_id = b.id
+    LEFT JOIN authors a ON b.author_id = a.id
+    WHERE rp.user_id = ${user.id}
+  `
 
   // Get user's reading lists
-  const readingLists = await db
-    .from("reading_lists")
-    .select(`
-      *,
-      reading_list_books(
-        book_id,
-        books(
-          id, title, author, cover_image
-        )
-      )
-    `)
-    .eq("user_id", userData.user.id)
-    .execute()
+  const readingLists = await sql`
+    SELECT rl.*, 
+           COALESCE(
+             json_agg(
+               json_build_object(
+                 'id', b.id,
+                 'title', b.title,
+                 'author', a.name,
+                 'cover_image', b.cover_url
+               )
+             ) FILTER (WHERE b.id IS NOT NULL), 
+             '[]'::json
+           ) as books
+    FROM reading_lists rl
+    LEFT JOIN reading_list_items rli ON rl.id = rli.list_id
+    LEFT JOIN books b ON rli.book_id = b.id
+    LEFT JOIN authors a ON b.author_id = a.id
+    WHERE rl.user_id = ${user.id}
+    GROUP BY rl.id
+  `
 
-  // Get wishlist
-  const wishlist = await db
-    .from("wishlist")
-    .select(`
-      *,
-      books(
-        id, title, author, cover_image, description, price
-      )
-    `)
-    .eq("user_id", userData.user.id)
-    .execute()
+  // Get user's wishlist
+  const wishlist = await sql`
+    SELECT w.*, b.id, b.title, a.name as author, b.cover_url as cover_image, b.price
+    FROM wishlist w
+    JOIN books b ON w.book_id = b.id
+    LEFT JOIN authors a ON b.author_id = a.id
+    WHERE w.user_id = ${user.id}
+  `
 
   // Get user profile for stats
-  const { data: profile } = await db.from("profiles").select("*").eq("id", userData.user.id).single()
+  const profile = await sql`
+    SELECT * FROM profiles WHERE id = ${user.id}
+  `
 
   const [personalizedBooks, trendingBooks] = await Promise.all([
-    getPersonalizedRecommendations(userData.user.id, 6),
+    getPersonalizedRecommendations(user.id, 6),
     getTrendingBooks(6),
   ])
 
@@ -114,7 +107,7 @@ export default async function LibraryPage() {
           <div className="flex items-center gap-3 mb-2">
             <Star className="h-8 w-8 text-yellow-500 animate-pulse" />
             <h2 className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent animate-shimmer">
-              Welcome back, {profile?.display_name || "Reader"}!
+              Welcome back, {profile[0]?.display_name || "Reader"}!
             </h2>
             <Sparkles className="h-6 w-6 text-purple-500 animate-bounce" />
           </div>
@@ -126,13 +119,13 @@ export default async function LibraryPage() {
 
         {/* Reading Stats */}
         <ReadingStats
-          profile={profile}
-          readingProgress={readingProgress || []}
-          totalBooks={libraryBooks?.length || 0}
-        />
+           profile={profile[0] as any}
+           readingProgress={readingProgress as any || []}
+           totalBooks={libraryBooks?.length || 0}
+         />
 
         <div className="mb-8">
-          <AIRecommendations personalizedBooks={personalizedBooks} trendingBooks={trendingBooks} userId={userData.user.id} />
+          <AIRecommendations personalizedBooks={personalizedBooks} trendingBooks={trendingBooks} userId={user.id} />
         </div>
 
         {/* Library Tabs */}
@@ -141,7 +134,7 @@ export default async function LibraryPage() {
           readingProgress={readingProgress || []}
           readingLists={readingLists || []}
           wishlist={wishlist || []}
-          userId={userData.user.id}
+          userId={user.id}
         />
       </div>
     </div>

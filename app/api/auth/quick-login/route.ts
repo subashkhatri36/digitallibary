@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { signIn } from '@/lib/auth';
-import { createServerClient } from "@/lib/neon/database";
+import { sql } from '@/lib/neon/client';
 
 export async function POST(request: NextRequest) {
   // Only allow quick login in development mode
@@ -10,8 +10,6 @@ export async function POST(request: NextRequest) {
       { status: 403 }
     );
   }
-
-  const db = await createServerClient();
 
   try {
     const { userType } = await request.json();
@@ -33,15 +31,13 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    // Get user from database
-    const { data: user, error } = await db
-      .from("users")
-      .select("*")
-      .eq("email", email)
-      .single()
+    // Check if user exists in database using direct SQL query
+    const userResult = await sql`
+      SELECT id, email FROM users WHERE email = ${email}
+    `;
 
-    if (error || !user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    if (userResult.length === 0) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Use the existing signIn function with test password

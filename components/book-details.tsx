@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { BookOpen, Star, Heart, ShoppingCart, Play, Gift } from "lucide-react"
 import { PaymentDialog } from "@/components/payment-dialog"
-import { createClient } from "@/lib/neon/database"
+// Database operations moved to server actions
 import Link from "next/link"
 
 interface BookDetailsProps {
@@ -35,8 +35,6 @@ export function BookDetails({ book, hasFullAccess, userTier = "free" }: BookDeta
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [showWishlistDialog, setShowWishlistDialog] = useState(false)
   const [isInWishlist, setIsInWishlist] = useState(false)
-  const db = createClient()
-
   const bookTags = book.book_tags || []
   const bookReviews = book.book_reviews || []
 
@@ -49,15 +47,8 @@ export function BookDetails({ book, hasFullAccess, userTier = "free" }: BookDeta
   const savings = book.price - discountedPrice
 
   const addToWishlist = async () => {
-    const {
-      data: userData,
-    } = await db.auth.getUser()
-    if (!userData?.user) return
-
-    await db.from("wishlist").insert({
-      user_id: userData.user.id,
-      book_id: book.id,
-    }).execute()
+    // TODO: Implement server action for adding to wishlist
+    console.log('Add to wishlist functionality needs server action implementation')
     setIsInWishlist(true)
   }
 

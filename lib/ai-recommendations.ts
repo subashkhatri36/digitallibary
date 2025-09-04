@@ -1,4 +1,4 @@
-import { createServerClient } from "@/lib/neon/database"
+import { sql } from "@/lib/neon/client"
 
 export interface BookRecommendation {
   book: any
@@ -7,10 +7,14 @@ export interface BookRecommendation {
 }
 
 export async function getPersonalizedRecommendations(userId: string, limit = 6): Promise<BookRecommendation[]> {
-  const db = await createServerClient()
-
   // For now, return some mock recommendations since we don't have full user data
-  const books = await db.from("books").select("*").limit(limit).execute()
+  const books = await sql`
+    SELECT b.*, a.name as author_name
+    FROM books b
+    LEFT JOIN authors a ON b.author_id = a.id
+    WHERE b.is_featured = true OR b.is_trending = true
+    LIMIT ${limit}
+  `
   
   return books.map((book: any, index: number) => ({
     book,
@@ -21,13 +25,23 @@ export async function getPersonalizedRecommendations(userId: string, limit = 6):
 }
 
 export async function getTrendingBooks(limit = 6) {
-  const db = await createServerClient()
-  const books = await db.from("books").select("*").limit(limit).execute()
+  const books = await sql`
+    SELECT b.*, a.name as author_name
+    FROM books b
+    LEFT JOIN authors a ON b.author_id = a.id
+    WHERE b.is_trending = true
+    LIMIT ${limit}
+  `
   return books
 }
 
 export async function getSimilarBooks(bookId: string, limit = 4) {
-  const db = await createServerClient()
-  const books = await db.from("books").select("*").limit(limit).execute()
+  const books = await sql`
+    SELECT b.*, a.name as author_name
+    FROM books b
+    LEFT JOIN authors a ON b.author_id = a.id
+    WHERE b.id != ${bookId}
+    LIMIT ${limit}
+  `
   return books
 }
